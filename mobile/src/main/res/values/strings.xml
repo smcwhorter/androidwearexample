@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">RomanceTracker</string>
+    <string name="action_settings">Settings</string>
+    <array name="people">
+        <item>Stacy</item>
+        <item>Sophia</item>
+    </array>
+</resources>
