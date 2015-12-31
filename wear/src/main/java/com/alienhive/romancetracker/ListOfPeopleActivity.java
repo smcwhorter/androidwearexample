@@ -1,6 +1,7 @@
 package com.alienhive.romancetracker;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
@@ -8,8 +9,8 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
@@ -60,7 +61,8 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
 
     @Override
     public void onConnected(Bundle bundle) {
-        getConnectedNodes();
+        Log.d(LOG_TAG, "onConnected");
+        new GetPeopleListTask().execute();
     }
 
     @Override
@@ -73,15 +75,21 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
         Log.d(LOG_TAG, "GoogleAPIClient - onConnectionFailed");
     }
 
+    private class GetPeopleListTask extends AsyncTask<String, String, String>
+    {
+        @Override
+        protected String doInBackground(String... params) {
+            getConnectedNodes();
+            getSweetyList();
+            return null;
+        }
+    }
+
     private void getConnectedNodes()
     {
-        PendingResult<NodeApi.GetConnectedNodesResult> pendingResultOfNodes = Wearable.NodeApi.getConnectedNodes(this.apiClient);
-        pendingResultOfNodes.setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
-            @Override
-            public void onResult(NodeApi.GetConnectedNodesResult results) {
-                nodeList = buildNodeList(results);
-            }
-        });
+        Log.d(LOG_TAG, "getConnectedNodes");
+        NodeApi.GetConnectedNodesResult resultOfNodes = Wearable.NodeApi.getConnectedNodes(this.apiClient).await();
+        this.nodeList = buildNodeList(resultOfNodes);
     }
 
     private ArrayList<String> buildNodeList(NodeApi.GetConnectedNodesResult result) {
@@ -101,5 +109,15 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
             Log.d(LOG_TAG, "No connected nodes");
         }
         return nodeList;
+    }
+
+    private void getSweetyList()
+    {
+        Wearable.MessageApi.sendMessage(this.apiClient, nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+            @Override
+            public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
+            }
+        });
     }
 }

@@ -8,6 +8,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,6 +18,8 @@ import android.widget.ListView;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Wearable;
 
 import java.util.ArrayList;
@@ -29,13 +32,20 @@ import java.util.prefs.Preferences;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class ListOfPeopleActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class ListOfPeopleActivity extends AppCompatActivity implements
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        MessageApi.MessageListener
+{
+    //Constants
+    private static final String LOG_TAG = "ListOfPeopleActivity";
+
+    //Private fields
+    private List<String> arrayList;
+    private GoogleApiClient apiClient;
 
     @Bind(R.id.listView)
     ListView listView;
-
-    private List<String> arrayList;
-    private GoogleApiClient apiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +65,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements GoogleApi
     protected void onResume() {
         super.onResume();
         int status = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(getApplicationContext());
-        if(status != ConnectionResult.API_UNAVAILABLE) {
+        if (status != ConnectionResult.API_UNAVAILABLE) {
             apiClient = new GoogleApiClient.Builder(this)
                     .addApi(Wearable.API)
                     .addConnectionCallbacks(this)
@@ -68,8 +78,8 @@ public class ListOfPeopleActivity extends AppCompatActivity implements GoogleApi
     @Override
     protected void onPause() {
         super.onPause();
-        if(apiClient != null)
-        {
+        if (apiClient != null) {
+            Wearable.MessageApi.removeListener(this.apiClient, this);
             apiClient.disconnect();
         }
 //        Set<String> set = new HashSet<String>();
@@ -119,19 +129,29 @@ public class ListOfPeopleActivity extends AppCompatActivity implements GoogleApi
     }
 
 
+    /* Google client API */
     @Override
     public void onConnected(Bundle bundle) {
         Snackbar.make(listView, "Google API Client - Connected", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
+        Wearable.MessageApi.addListener(this.apiClient, this);
     }
 
+    /* Google client API */
     @Override
     public void onConnectionSuspended(int i) {
 
     }
 
+    /* Google client API */
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         //TODO: Look at the connection results
         Snackbar.make(listView, "Google API Client - Connection failed with status: " + connectionResult.getErrorMessage(), Snackbar.LENGTH_SHORT).show();
+    }
+
+    /* Message API */
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        Log.d(LOG_TAG, "onMessageReceived: " + messageEvent.getPath());
     }
 }
