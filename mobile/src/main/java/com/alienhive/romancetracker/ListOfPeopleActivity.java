@@ -18,8 +18,16 @@ import android.widget.ListView;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.util.ArrayList;
@@ -36,12 +44,13 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         MessageApi.MessageListener
+
 {
     //Constants
     private static final String LOG_TAG = "ListOfPeopleActivity";
 
     //Private fields
-    private List<String> arrayList;
+    private List<String> sweetyList;
     private GoogleApiClient apiClient;
 
     @Bind(R.id.listView)
@@ -56,8 +65,8 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         setupFAB();
         ButterKnife.bind(this);
         String[] myResArray = getResources().getStringArray(R.array.people);
-        List<String> arrayList = Arrays.asList(myResArray);
-        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayList);
+        this.sweetyList = Arrays.asList(myResArray);
+        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
         listView.setAdapter(arrayAdapter);
     }
 
@@ -153,5 +162,28 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
         Log.d(LOG_TAG, "onMessageReceived: " + messageEvent.getPath());
+        if(messageEvent.getPath().equals("/getSweetyList"))
+        {
+            sendSweetList();
+        }
+    }
+
+    private void sendSweetList()
+    {
+        Log.d(LOG_TAG, "Sending data");
+        PutDataMapRequest putDataRequest = PutDataMapRequest.create("/sweetyList");//internally the URI looks like wear://<nodeid>/sweetyList
+
+        DataMap dataMap = putDataRequest.getDataMap();//DataMap is kinda like a Bundle (key/value pairs)
+        ArrayList<String> dataList = new ArrayList<String>(this.sweetyList.size());
+        dataList.addAll(this.sweetyList);
+        dataMap.putStringArrayList("SweetyList", dataList);
+        //dataMap.putLong("TimeStamp", System.currentTimeMillis());
+
+        Wearable.DataApi.putDataItem(this.apiClient, putDataRequest.asPutDataRequest()).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+            @Override
+            public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
+                Log.d(LOG_TAG, dataItemResult.getStatus().getStatusMessage());
+            }
+        });
     }
 }

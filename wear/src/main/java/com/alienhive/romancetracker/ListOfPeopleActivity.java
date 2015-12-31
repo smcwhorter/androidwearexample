@@ -1,15 +1,27 @@
 package com.alienhive.romancetracker;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataItemBuffer;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
@@ -17,13 +29,21 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.util.ArrayList;
 
-public class ListOfPeopleActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
+
+public class ListOfPeopleActivity extends Activity implements
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        DataApi.DataListener
 {
 
+    /* Constants */
     private static final String LOG_TAG = "ListOfPeopleActivity";
-    private TextView mTextView;
+
+    /* Private Fields */
+    private ListView listView;
     private GoogleApiClient apiClient;
     private ArrayList<String> nodeList;
+    private ArrayList<String> sweetyList = new ArrayList<>(0);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +53,9 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(WatchViewStub stub) {
-                mTextView = (TextView) stub.findViewById(R.id.text);
+                listView = (ListView) stub.findViewById(R.id.listView);
+                TextView emptyView = (TextView) stub.findViewById(android.R.id.empty);
+                listView.setEmptyView(emptyView);
             }
         });
     }
@@ -42,6 +64,11 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
     protected void onResume() {
         super.onResume();
         Log.d(LOG_TAG, "onResume");
+        connectToGoogleApiClient();
+        checkDataMapCache();
+    }
+
+    private void connectToGoogleApiClient() {
         apiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(this)
@@ -50,10 +77,32 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
         apiClient.connect();
     }
 
+    private void checkDataMapCache() {
+        PendingResult<DataItemBuffer> result = Wearable.DataApi.getDataItems(this.apiClient);
+        result.setResultCallback(new ResultCallback<DataItemBuffer>() {
+            @Override
+            public void onResult(DataItemBuffer dataItems) {
+                if(dataItems.getCount() > 0) {
+                    Log.d(LOG_TAG, "Found Cached DataItems");
+                    DataItem item = dataItems.get(0);
+                    DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
+                    sweetyList = dataMapItem.getStringArrayList("SweetyList");
+                    bindListView();
+                    dataItems.release();
+                }
+                else
+                {
+                    Log.d(LOG_TAG, "NO Cached DataItems");
+                }
+            }
+        });
+    }
+
     @Override
     protected void onPause() {
         if(apiClient != null)
         {
+            Wearable.DataApi.removeListener(this.apiClient, this);
             apiClient.disconnect();
         }
         super.onPause();
@@ -62,6 +111,7 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(LOG_TAG, "onConnected");
+        Wearable.DataApi.addListener(this.apiClient, this);
         new GetPeopleListTask().execute();
     }
 
@@ -73,14 +123,16 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d(LOG_TAG, "GoogleAPIClient - onConnectionFailed");
+        Toast.makeText(this, "Cannot connect to GPS", Toast.LENGTH_SHORT).show();
     }
+
 
     private class GetPeopleListTask extends AsyncTask<String, String, String>
     {
         @Override
         protected String doInBackground(String... params) {
             getConnectedNodes();
-            getSweetyList();
+            askForSweetyList();
             return null;
         }
     }
@@ -107,11 +159,12 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
         else
         {
             Log.d(LOG_TAG, "No connected nodes");
+            Toast.makeText(this, "No connected nodes", Toast.LENGTH_SHORT).show();
         }
         return nodeList;
     }
 
-    private void getSweetyList()
+    private void askForSweetyList()
     {
         Wearable.MessageApi.sendMessage(this.apiClient, nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
             @Override
@@ -119,5 +172,26 @@ public class ListOfPeopleActivity extends Activity implements GoogleApiClient.Co
                 Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
             }
         });
+    }
+
+    @Override
+    public void onDataChanged(DataEventBuffer dataEventBuffer) {
+        DataEvent event = dataEventBuffer.get(0);
+        DataItem dataItem = event.getDataItem();
+
+        Log.d(LOG_TAG, "onDataChanged: URI: " +   dataItem.getUri());
+
+        if(dataItem.getUri().toString().contains("/sweetyList"))
+        {
+            DataMap dataMap = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
+            sweetyList = dataMap.get("SweetyList");
+            bindListView();
+        }
+    }
+
+    private void bindListView()
+    {
+        ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, this.sweetyList);
+        this.listView.setAdapter(adapter);
     }
 }
