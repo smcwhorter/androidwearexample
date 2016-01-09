@@ -81,19 +81,17 @@ public class ListOfPeopleActivity extends Activity implements
         result.setResultCallback(new ResultCallback<DataItemBuffer>() {
             @Override
             public void onResult(DataItemBuffer dataItems) {
-                if(dataItems.getCount() > 0) {
-                    Log.d(LOG_TAG, "Found Cached DataItems");
-                    DataItem item = dataItems.get(0);
-                    if(item.getUri().toString().contains("/SweetyList")) {
-                        DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
+                if (dataItems.getCount() > 0) {
 
+                    DataItem item = dataItems.get(0);
+                    if (item.getUri().toString().contains("/SweetyList")) {
+                        Log.d(LOG_TAG, "Found Cached DataItems");
+                        DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
                         sweetyList = dataMapItem.getStringArrayList("SweetyList");
                         bindListView();
                         dataItems.release();
                     }
-                }
-                else
-                {
+                } else {
                     Log.d(LOG_TAG, "NO Cached DataItems");
                 }
             }
@@ -128,14 +126,18 @@ public class ListOfPeopleActivity extends Activity implements
         Toast.makeText(this, "Cannot connect to GPS", Toast.LENGTH_SHORT).show();
     }
 
-
     private class GetPeopleListTask extends AsyncTask<String, String, String>
     {
         @Override
         protected String doInBackground(String... params) {
             getConnectedNodes();
-            askForSweetyList();
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            askForSweetyList();
         }
     }
 
@@ -158,22 +160,25 @@ public class ListOfPeopleActivity extends Activity implements
                 Log.d(LOG_TAG, "Node name and ID: " + nName + " | " + nId);
             }
         }
-        else
-        {
-            Log.d(LOG_TAG, "No connected nodes");
-            Toast.makeText(this, "No connected nodes", Toast.LENGTH_SHORT).show();
-        }
         return nodeList;
     }
 
     private void askForSweetyList()
     {
-        Wearable.MessageApi.sendMessage(this.apiClient, nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-            @Override
-            public void onResult(MessageApi.SendMessageResult sendMessageResult) {
-                Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
-            }
-        });
+        if(this.nodeList != null || this.nodeList.size() != 0)
+        {
+            Wearable.MessageApi.sendMessage(this.apiClient, nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                @Override
+                public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                    Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
+                }
+            });
+        }
+        else
+        {
+            Log.d(LOG_TAG, "No connected nodes");
+            Toast.makeText(this, "No connected nodes", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
