@@ -29,7 +29,6 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.util.ArrayList;
 
-
 public class ListOfPeopleActivity extends Activity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -85,10 +84,13 @@ public class ListOfPeopleActivity extends Activity implements
                 if(dataItems.getCount() > 0) {
                     Log.d(LOG_TAG, "Found Cached DataItems");
                     DataItem item = dataItems.get(0);
-                    DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
-                    sweetyList = dataMapItem.getStringArrayList("SweetyList");
-                    bindListView();
-                    dataItems.release();
+                    if(item.getUri().toString().contains("/SweetyList")) {
+                        DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
+
+                        sweetyList = dataMapItem.getStringArrayList("SweetyList");
+                        bindListView();
+                        dataItems.release();
+                    }
                 }
                 else
                 {

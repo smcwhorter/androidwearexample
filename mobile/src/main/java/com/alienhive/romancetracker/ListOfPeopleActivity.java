@@ -1,6 +1,9 @@
 package com.alienhive.romancetracker;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -12,7 +15,12 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -50,11 +58,13 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private static final String LOG_TAG = "ListOfPeopleActivity";
 
     //Private fields
-    private List<String> sweetyList;
+    private ArrayList<String> sweetyList;
+    private ArrayAdapter sweetyListAdapter;
     private GoogleApiClient apiClient;
 
     @Bind(R.id.listView)
     ListView listView;
+    private AlertDialog appPartnerDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,9 +75,11 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         setupFAB();
         ButterKnife.bind(this);
         String[] myResArray = getResources().getStringArray(R.array.people);
-        this.sweetyList = Arrays.asList(myResArray);
-        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
-        listView.setAdapter(arrayAdapter);
+        List<String> defaultData = Arrays.asList(myResArray);
+        this.sweetyList = new ArrayList<>(defaultData.size());
+        this.sweetyList.addAll(defaultData);
+        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
+        listView.setAdapter(sweetyListAdapter);
     }
 
     @Override
@@ -90,12 +102,8 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         if (apiClient != null) {
             Wearable.MessageApi.removeListener(this.apiClient, this);
             apiClient.disconnect();
+            apiClient = null;
         }
-//        Set<String> set = new HashSet<String>();
-//        set.addAll()
-//        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("RomanceTracker", Context.MODE_PRIVATE);
-//        SharedPreferences.Editor editor = sharedPreferences.edit();
-//        editor.putStringSet("People",)
 
     }
 
@@ -106,13 +114,40 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
 
     private void setupFAB() {
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        fab.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                showAddNewPartnerDialog();
             }
         });
+    }
+
+    private void showAddNewPartnerDialog() {
+        final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        dialogBuilder.setTitle("Add new Partner");
+        dialogBuilder.setCancelable(true);
+
+        View view = this.getLayoutInflater().inflate(R.layout.add_partner_dialog, null);
+        final EditText partnerNameEditText = (EditText) view.findViewById(R.id.partnerNameEditText);
+
+        Button partnerNameAddButton = (Button) view.findViewById(R.id.partnerNameAddButton);
+        partnerNameAddButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String newName = partnerNameEditText.getText().toString();
+                addPartnerName(newName);
+                appPartnerDialog.dismiss();
+
+            }
+        });
+        dialogBuilder.setView(view);
+        appPartnerDialog = dialogBuilder.create();
+        appPartnerDialog.show();
+    }
+
+    private void addPartnerName(String newName) {
+        this.sweetyList.add(newName);
+        this.sweetyListAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -171,15 +206,15 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private void sendSweetList()
     {
         Log.d(LOG_TAG, "Sending data");
-        PutDataMapRequest putDataRequest = PutDataMapRequest.create("/sweetyList");//internally the URI looks like wear://<nodeid>/sweetyList
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sweetyList");//internally the URI looks like wear://<nodeid>/sweetyList
 
-        DataMap dataMap = putDataRequest.getDataMap();//DataMap is kinda like a Bundle (key/value pairs)
+        DataMap dataMap = putDataMapRequest.getDataMap();//DataMap is kinda like a Bundle (key/value pairs)
         ArrayList<String> dataList = new ArrayList<String>(this.sweetyList.size());
         dataList.addAll(this.sweetyList);
         dataMap.putStringArrayList("SweetyList", dataList);
         //dataMap.putLong("TimeStamp", System.currentTimeMillis());
 
-        Wearable.DataApi.putDataItem(this.apiClient, putDataRequest.asPutDataRequest()).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+        Wearable.DataApi.putDataItem(this.apiClient, putDataMapRequest.asPutDataRequest()).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
             @Override
             public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
                 Log.d(LOG_TAG, dataItemResult.getStatus().getStatusMessage());
