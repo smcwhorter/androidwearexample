@@ -1,10 +1,7 @@
 package com.alienhive.romancetracker;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
+
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -16,11 +13,10 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
+
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -28,22 +24,15 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.DataEvent;
-import com.google.android.gms.wearable.DataEventBuffer;
-import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.PutDataMapRequest;
-import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.prefs.Preferences;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -56,6 +45,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
 {
     //Constants
     private static final String LOG_TAG = "ListOfPeopleActivity";
+    public static final String SWEETYLIST = "SWEETYLIST";
 
     //Private fields
     private ArrayList<String> sweetyList;
@@ -70,17 +60,13 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_of_people);
-
         setupToolbar();
         setupFAB();
         ButterKnife.bind(this);
-        String[] myResArray = getResources().getStringArray(R.array.people);
-        List<String> defaultData = Arrays.asList(myResArray);
-        this.sweetyList = new ArrayList<>(defaultData.size());
-        this.sweetyList.addAll(defaultData);
-        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
-        listView.setAdapter(sweetyListAdapter);
+        extractSweetyListData(savedInstanceState);
+        setupListView();
     }
+
 
     @Override
     protected void onResume() {
@@ -97,6 +83,13 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     }
 
     @Override
+    public void onSaveInstanceState(Bundle outState) {
+        Log.d(LOG_TAG, "onSaveInstanceState");
+        outState.putStringArrayList(SWEETYLIST, this.sweetyList);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         if (apiClient != null) {
@@ -104,7 +97,6 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
             apiClient.disconnect();
             apiClient = null;
         }
-
     }
 
     private void setupToolbar() {
@@ -120,6 +112,28 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
                 showAddNewPartnerDialog();
             }
         });
+    }
+
+    private void extractSweetyListData(Bundle savedInstanceState) {
+        if(savedInstanceState != null) {
+            this.sweetyList = (ArrayList<String>) savedInstanceState.get(SWEETYLIST);
+        }
+        if(this.sweetyList == null)
+        {
+            loadDefaultData();
+        }
+    }
+
+    private void loadDefaultData() {
+        String[] myResArray = getResources().getStringArray(R.array.people);
+        List<String> defaultData = Arrays.asList(myResArray);
+        this.sweetyList = new ArrayList<>(defaultData.size());
+        this.sweetyList.addAll(defaultData);
+    }
+
+    private void setupListView() {
+        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
+        listView.setAdapter(sweetyListAdapter);
     }
 
     private void showAddNewPartnerDialog() {
@@ -148,6 +162,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private void addPartnerName(String newName) {
         this.sweetyList.add(newName);
         this.sweetyListAdapter.notifyDataSetChanged();
+        sendSweetyList();
     }
 
     @Override
@@ -199,11 +214,11 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         Log.d(LOG_TAG, "onMessageReceived: " + messageEvent.getPath());
         if(messageEvent.getPath().equals("/getSweetyList"))
         {
-            sendSweetList();
+            sendSweetyList();
         }
     }
 
-    private void sendSweetList()
+    private void sendSweetyList()
     {
         Log.d(LOG_TAG, "Sending data");
         PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sweetyList");//internally the URI looks like wear://<nodeid>/sweetyList
