@@ -37,9 +37,12 @@ public class ListOfPeopleActivity extends Activity implements
 
     /* Constants */
     private static final String LOG_TAG = "ListOfPeopleActivity";
+    private static final String SWEETY_LIST_URI_PATH = "/sweetyList";
+    private static final String SWEETY_LIST_DATA_MAP_ITEM_KEY = "SweetyListDataMapItemKey";
 
     /* Private Fields */
     private ListView listView;
+    private ArrayAdapter adapter;
     private GoogleApiClient apiClient;
     private ArrayList<String> nodeList;
     private ArrayList<String> sweetyList = new ArrayList<>(0);
@@ -48,15 +51,7 @@ public class ListOfPeopleActivity extends Activity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_of_people);
-        final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
-        stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
-            @Override
-            public void onLayoutInflated(WatchViewStub stub) {
-                listView = (ListView) stub.findViewById(R.id.listView);
-                TextView emptyView = (TextView) stub.findViewById(android.R.id.empty);
-                listView.setEmptyView(emptyView);
-            }
-        });
+        setupWatchViews();
     }
 
     @Override
@@ -64,38 +59,6 @@ public class ListOfPeopleActivity extends Activity implements
         super.onResume();
         Log.d(LOG_TAG, "onResume");
         connectToGoogleApiClient();
-        checkDataMapCache();
-    }
-
-    private void connectToGoogleApiClient() {
-        apiClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-        apiClient.connect();
-    }
-
-    private void checkDataMapCache() {
-        PendingResult<DataItemBuffer> result = Wearable.DataApi.getDataItems(this.apiClient);
-        result.setResultCallback(new ResultCallback<DataItemBuffer>() {
-            @Override
-            public void onResult(DataItemBuffer dataItems) {
-                if (dataItems.getCount() > 0) {
-
-                    DataItem item = dataItems.get(0);
-                    if (item.getUri().toString().contains("/SweetyList")) {
-                        Log.d(LOG_TAG, "Found Cached DataItems");
-                        DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
-                        sweetyList = dataMapItem.getStringArrayList("SweetyList");
-                        bindListView();
-                        dataItems.release();
-                    }
-                } else {
-                    Log.d(LOG_TAG, "NO Cached DataItems");
-                }
-            }
-        });
     }
 
     @Override
@@ -108,11 +71,61 @@ public class ListOfPeopleActivity extends Activity implements
         super.onPause();
     }
 
+    private void setupWatchViews() {
+        final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
+        stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
+            @Override
+            public void onLayoutInflated(WatchViewStub stub) {
+                listView = (ListView) stub.findViewById(R.id.listView);
+                TextView emptyView = (TextView) stub.findViewById(android.R.id.empty);
+                listView.setEmptyView(emptyView);
+                adapter = new ArrayAdapter(stub.getContext(), android.R.layout.simple_list_item_1, sweetyList);
+                listView.setAdapter(adapter);
+            }
+        });
+    }
+
+    private void checkDataMapCache() {
+        PendingResult<DataItemBuffer> result = Wearable.DataApi.getDataItems(this.apiClient);
+        result.setResultCallback(new ResultCallback<DataItemBuffer>() {
+            @Override
+            public void onResult(DataItemBuffer dataItems) {
+                int items = dataItems.getCount();
+                if (items > 0) {
+                    DataItem item = dataItems.get(0);
+                    if (item.getUri().toString().contains(SWEETY_LIST_URI_PATH)) {
+                        Log.d(LOG_TAG, "Found Cached DataItems");
+                        DataMap dataMapItem = DataMapItem.fromDataItem(item).getDataMap();
+                        if (dataMapItem.containsKey(SWEETY_LIST_DATA_MAP_ITEM_KEY)) {
+                            ArrayList<String> sweetyList = dataMapItem.getStringArrayList(SWEETY_LIST_DATA_MAP_ITEM_KEY);
+                            updateListView(sweetyList);
+                        }
+                        dataItems.release();
+                    }
+                } else {
+                    Log.d(LOG_TAG, "NO Cached DataItems");
+                }
+            }
+        });
+    }
+
+    private void connectToGoogleApiClient() {
+        apiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+        apiClient.connect();
+    }
+
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(LOG_TAG, "onConnected");
         Wearable.DataApi.addListener(this.apiClient, this);
-        new GetPeopleListTask().execute();
+        checkDataMapCache();//cannot check the cache without a GoogleAPIClient
+        if(isSweetyListEmpty()) {
+            new GetSweetyListTask().execute();
+        }
     }
 
     @Override
@@ -126,7 +139,11 @@ public class ListOfPeopleActivity extends Activity implements
         Toast.makeText(this, "Cannot connect to GPS", Toast.LENGTH_SHORT).show();
     }
 
-    private class GetPeopleListTask extends AsyncTask<String, String, String>
+    private boolean isSweetyListEmpty() {
+        return (this.sweetyList == null || this.sweetyList.size() == 0);
+    }
+
+    private class GetSweetyListTask extends AsyncTask<String, String, String>
     {
         @Override
         protected String doInBackground(String... params) {
@@ -188,17 +205,18 @@ public class ListOfPeopleActivity extends Activity implements
 
         Log.d(LOG_TAG, "onDataChanged: URI: " +   dataItem.getUri());
 
-        if(dataItem.getUri().toString().contains("/sweetyList"))
+        if(dataItem.getUri().toString().contains(SWEETY_LIST_URI_PATH))
         {
             DataMap dataMap = DataMapItem.fromDataItem(event.getDataItem()).getDataMap();
-            sweetyList = dataMap.get("SweetyList");
-            bindListView();
+            ArrayList<String> data = dataMap.get(SWEETY_LIST_DATA_MAP_ITEM_KEY);
+            updateListView(data);
         }
     }
 
-    private void bindListView()
+    private void updateListView(ArrayList<String> data)
     {
-        ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, this.sweetyList);
-        this.listView.setAdapter(adapter);
+        sweetyList.clear();
+        sweetyList.addAll(data);
+        this.adapter.notifyDataSetChanged();
     }
 }
