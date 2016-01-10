@@ -1,11 +1,14 @@
 package com.alienhive.romancetracker;
 
 import android.app.Activity;
+import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -32,7 +35,8 @@ import java.util.ArrayList;
 public class ListOfPeopleActivity extends Activity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        DataApi.DataListener
+        DataApi.DataListener,
+        ListView.OnItemClickListener
 {
 
     /* Constants */
@@ -72,6 +76,7 @@ public class ListOfPeopleActivity extends Activity implements
     }
 
     private void setupWatchViews() {
+        final ListOfPeopleActivity activityContext = this;
         final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
@@ -81,6 +86,8 @@ public class ListOfPeopleActivity extends Activity implements
                 listView.setEmptyView(emptyView);
                 adapter = new ArrayAdapter(stub.getContext(), android.R.layout.simple_list_item_1, sweetyList);
                 listView.setAdapter(adapter);
+
+                listView.setOnItemClickListener(activityContext);
             }
         });
     }
@@ -141,6 +148,11 @@ public class ListOfPeopleActivity extends Activity implements
 
     private boolean isSweetyListEmpty() {
         return (this.sweetyList == null || this.sweetyList.size() == 0);
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
     }
 
     private class GetSweetyListTask extends AsyncTask<String, String, String>
