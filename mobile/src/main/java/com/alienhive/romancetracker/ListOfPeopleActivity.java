@@ -46,6 +46,8 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     //Constants
     private static final String LOG_TAG = "ListOfPeopleActivity";
     public static final String SWEETYLIST = "SWEETYLIST";
+    private static final String SWEETY_LIST_URI_PATH = "/sweetyList";
+    public static final String SWEETY_LIST_DATA_MAP_ITEM_KEY = "SweetyListDataMapItemKey";
 
     //Private fields
     private ArrayList<String> sweetyList;
@@ -162,7 +164,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private void addPartnerName(String newName) {
         this.sweetyList.add(newName);
         this.sweetyListAdapter.notifyDataSetChanged();
-        sendSweetyList();
+        syncSweetyList();
     }
 
     @Override
@@ -193,6 +195,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     public void onConnected(Bundle bundle) {
         Snackbar.make(listView, "Google API Client - Connected", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
         Wearable.MessageApi.addListener(this.apiClient, this);
+        syncSweetyList();
     }
 
     /* Google client API */
@@ -214,20 +217,27 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         Log.d(LOG_TAG, "onMessageReceived: " + messageEvent.getPath());
         if(messageEvent.getPath().equals("/getSweetyList"))
         {
-            sendSweetyList();
+            syncSweetyList();
         }
     }
 
-    private void sendSweetyList()
+    private void syncSweetyList()
     {
         Log.d(LOG_TAG, "Sending data");
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/sweetyList");//internally the URI looks like wear://<nodeid>/sweetyList
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(SWEETY_LIST_URI_PATH);//internally the URI looks like wear://<nodeid>/sweetyList
+
+        //http://android-developers.blogspot.nl/2015/11/whats-new-in-google-play-services-83.html:
+        // Non-urgent DataItems may be delayed for up to 30 minutes, but you can expect that in most
+        // cases they will be delivered within a few minutes.
+        // Low priority is now the default, so setUrgent() is needed to obtain the previous timing.
+        putDataMapRequest.setUrgent();
 
         DataMap dataMap = putDataMapRequest.getDataMap();//DataMap is kinda like a Bundle (key/value pairs)
         ArrayList<String> dataList = new ArrayList<String>(this.sweetyList.size());
         dataList.addAll(this.sweetyList);
-        dataMap.putStringArrayList("SweetyList", dataList);
+        dataMap.putStringArrayList(SWEETY_LIST_DATA_MAP_ITEM_KEY, dataList);
         //dataMap.putLong("TimeStamp", System.currentTimeMillis());
+
 
         Wearable.DataApi.putDataItem(this.apiClient, putDataMapRequest.asPutDataRequest()).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
             @Override
