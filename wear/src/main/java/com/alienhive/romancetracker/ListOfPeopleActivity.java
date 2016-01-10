@@ -152,7 +152,7 @@ public class ListOfPeopleActivity extends Activity implements
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
+        startActivity(ActionCaptureActivity.buildIntent(this));
     }
 
     private class GetSweetyListTask extends AsyncTask<String, String, String>
@@ -196,7 +196,7 @@ public class ListOfPeopleActivity extends Activity implements
     {
         if(this.nodeList != null || this.nodeList.size() != 0)
         {
-            Wearable.MessageApi.sendMessage(this.apiClient, nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+            Wearable.MessageApi.sendMessage(this.apiClient, this.nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
                 @Override
                 public void onResult(MessageApi.SendMessageResult sendMessageResult) {
                     Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
