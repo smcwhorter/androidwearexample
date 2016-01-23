@@ -5,18 +5,17 @@ import android.app.FragmentManager;
 import android.content.Context;
 import android.support.wearable.view.FragmentGridPagerAdapter;
 
+import com.alienhive.romancetracker.domain.ActionColumn;
 import com.alienhive.romancetracker.domain.ActionPageRow;
 
 import java.util.ArrayList;
 
-/**
- * Created by sm15461 on 1/10/16.
- */
 public class ActionPickerGridPagerAdapter extends FragmentGridPagerAdapter
 {
     private Context context;
     private FragmentManager fm;
     private ArrayList<ActionPageRow> actionPageList;
+    private ArrayList<ActionColumn> actionColumnList;
 
     public ActionPickerGridPagerAdapter(Context context, FragmentManager fm) {
         super(fm);
@@ -32,11 +31,26 @@ public class ActionPickerGridPagerAdapter extends FragmentGridPagerAdapter
         ActionPageRow row1 = new ActionPageRow("Kisses", "Track big or small kisses.");
         actionPageList.add(row0);
         actionPageList.add(row1);
+
+        actionColumnList = new ArrayList<>(2);
+        ActionColumn actionColumn1 = new ActionColumn();
+        actionColumnList.add(actionColumn1);
+        ActionColumn actionColumn2 = new ActionColumn();
+        actionColumnList.add(actionColumn2);
     }
 
     @Override
     public Fragment getFragment(int row, int col) {
-        return actionPageList.get(row).getFragment();
+        if(((row == 0) || (row == 1)) && (col == 0)) {
+            return actionPageList.get(row).getFragment();
+        }
+        else if(((row == 0) || (row == 1)) && (col == 1)) {
+            return actionColumnList.get(row).getFragment();
+        }
+        else
+        {
+            return null;
+        }
     }
 
     @Override
@@ -49,6 +63,6 @@ public class ActionPickerGridPagerAdapter extends FragmentGridPagerAdapter
 
     @Override
     public int getColumnCount(int i) {
-        return 1;
+            return 2;
     }
 }

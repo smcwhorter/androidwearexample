@@ -1,6 +1,7 @@
 package com.alienhive.romancetracker.domain;
 
 import android.app.Fragment;
+import android.support.wearable.view.ActionPage;
 
 import com.alienhive.romancetracker.ActionTypeFragment;
 
@@ -15,5 +16,6 @@ public class ActionPageRow {
     public ActionPageRow(String title, String description)
     {
         actionTypeFragment = ActionTypeFragment.newInstance(title, description);
+
     }
 }
