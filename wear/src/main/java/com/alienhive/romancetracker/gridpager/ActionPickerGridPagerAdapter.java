@@ -1,11 +1,11 @@
-package com.alienhive.romancetracker;
+package com.alienhive.romancetracker.gridpager;
 
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Context;
 import android.support.wearable.view.FragmentGridPagerAdapter;
 
-import com.alienhive.romancetracker.domain.ActionPageRow;
+import com.alienhive.romancetracker.domain.RomanceAction;
 
 import java.util.ArrayList;
 
@@ -21,8 +21,9 @@ public class ActionPickerGridPagerAdapter extends FragmentGridPagerAdapter {
 
     private void createActionPages() {
         actionPageList = new ArrayList<>(2);
-        ActionPageRow actionRow1 = new ActionPageRow("Hugs", "Track big or small hugs.");
-        ActionPageRow actionRow2 = new ActionPageRow("Kisses", "Track big or small kisses.");
+        ActionPageRow actionRow1 = new ActionPageRow(RomanceAction.createHugAction());
+
+        ActionPageRow actionRow2 = new ActionPageRow(RomanceAction.createKissAction());
         actionPageList.add(actionRow1);
         actionPageList.add(actionRow2);
     }

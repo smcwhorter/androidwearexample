@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.support.wearable.view.GridViewPager;
 import android.support.wearable.view.WatchViewStub;
 
+import com.alienhive.romancetracker.gridpager.ActionPickerGridPagerAdapter;
+
 public class ActionCaptureActivity extends Activity {
 
     public static Intent buildIntent(Context context)
