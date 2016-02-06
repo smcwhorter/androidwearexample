@@ -6,10 +6,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.wearable.view.GridViewPager;
 import android.support.wearable.view.WatchViewStub;
+import android.widget.Toast;
 
 import com.alienhive.romancetracker.gridpager.ActionPickerGridPagerAdapter;
 
-public class ActionCaptureActivity extends Activity {
+public class ActionCaptureActivity extends Activity implements ActionPageFragment.ActionPageFragmentListener {
 
     public static Intent buildIntent(Context context)
     {
@@ -36,5 +37,10 @@ public class ActionCaptureActivity extends Activity {
     {
         ActionPickerGridPagerAdapter adapter = new ActionPickerGridPagerAdapter(this, getFragmentManager());
         gridViewPager.setAdapter(adapter);
+    }
+
+    @Override
+    public void actionButtonClicked() {
+        Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
     }
 }

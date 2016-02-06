@@ -7,9 +7,12 @@ import android.support.wearable.view.ActionPage;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 public class ActionPageFragment extends Fragment {
+
+    public interface ActionPageFragmentListener {
+        public void actionButtonClicked();
+    }
 
     public static final String ACTION_TYPE_KEY = "ACTION_TYPE";
     public static final String ACTION_SIZE_KEY = "ACTION_SIZE";
@@ -27,6 +30,12 @@ public class ActionPageFragment extends Fragment {
     private String actionType;
     private boolean isBig = false;
     private ActionPage actionPage;
+    private ActionPageFragmentListener listener;
+
+    public void setListener(ActionPageFragmentListener listener)
+    {
+        this.listener = listener;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,21 +57,28 @@ public class ActionPageFragment extends Fragment {
     }
 
     private void setActionText() {
-        if(isBig) {
+        if (isBig) {
             actionPage.setText("Big " + actionType);
-        }
-        else{
+        } else {
             actionPage.setText("Small " + actionType);
         }
     }
 
     private void setClickListener() {
-        actionPage.setOnClickListener(new View.OnClickListener(){
+        actionPage.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                Toast.makeText(getContext(), "Clicked", Toast.LENGTH_SHORT).show();
+                preformAction();
             }
         });
+    }
+
+    private void preformAction()
+    {
+        if(listener != null)
+        {
+            listener.actionButtonClicked();
+        }
     }
 }

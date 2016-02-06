@@ -5,6 +5,8 @@ import android.app.FragmentManager;
 import android.content.Context;
 import android.support.wearable.view.FragmentGridPagerAdapter;
 
+import com.alienhive.romancetracker.ActionCaptureActivity;
+import com.alienhive.romancetracker.ActionPageFragment;
 import com.alienhive.romancetracker.domain.RomanceAction;
 
 import java.util.ArrayList;
@@ -30,7 +32,13 @@ public class ActionPickerGridPagerAdapter extends FragmentGridPagerAdapter {
 
     @Override
     public Fragment getFragment(int row, int col) {
-        return actionPageList.get(row).getFragment(col);
+        Fragment fragment = actionPageList.get(row).getFragment(col);
+        if (col > 0) {
+            if (fragment instanceof ActionPageFragment) {
+                ((ActionPageFragment) fragment).setListener((ActionCaptureActivity) this.context);
+            }
+        }
+        return fragment;
 
     }
 
