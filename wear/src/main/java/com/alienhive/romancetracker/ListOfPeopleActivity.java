@@ -48,7 +48,7 @@ public class ListOfPeopleActivity extends Activity implements
     private ListView listView;
     private ArrayAdapter adapter;
     private GoogleApiClient apiClient;
-    private ArrayList<String> nodeList;
+    public static ArrayList<String> nodeList;
     private ArrayList<String> sweetyList = new ArrayList<>(0);
 
     @Override
@@ -143,7 +143,7 @@ public class ListOfPeopleActivity extends Activity implements
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d(LOG_TAG, "GoogleAPIClient - onConnectionFailed");
-        Toast.makeText(this, "Cannot connect to GPS", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Cannot connect to Goggle Play Services", Toast.LENGTH_SHORT).show();
     }
 
     private boolean isSweetyListEmpty() {
@@ -152,7 +152,8 @@ public class ListOfPeopleActivity extends Activity implements
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        startActivity(ActionCaptureActivity.buildIntent(this));
+        String sweety = (String) this.adapter.getItem(position);
+        startActivity(ActionCaptureActivity.buildIntent(this, sweety));
     }
 
     private class GetSweetyListTask extends AsyncTask<String, String, String>
@@ -173,6 +174,7 @@ public class ListOfPeopleActivity extends Activity implements
     private void getConnectedNodes()
     {
         Log.d(LOG_TAG, "getConnectedNodes");
+        //blocking call which is why we are using an AsyncTask
         NodeApi.GetConnectedNodesResult resultOfNodes = Wearable.NodeApi.getConnectedNodes(this.apiClient).await();
         this.nodeList = buildNodeList(resultOfNodes);
     }

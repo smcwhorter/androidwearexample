@@ -211,13 +211,17 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         Snackbar.make(listView, "Google API Client - Connection failed with status: " + connectionResult.getErrorMessage(), Snackbar.LENGTH_SHORT).show();
     }
 
-    /* Message API */
+    /* Message API - in this case the activity must be running to receive messages*/
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
         Log.d(LOG_TAG, "onMessageReceived: " + messageEvent.getPath());
         if(messageEvent.getPath().equals("/getSweetyList"))
         {
             syncSweetyList();
+        }
+        else if(messageEvent.getPath().contains("/action"))
+        {
+            processActionEvent(messageEvent.getPath());
         }
     }
 
@@ -245,5 +249,10 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
                 Log.d(LOG_TAG, dataItemResult.getStatus().getStatusMessage());
             }
         });
+    }
+
+    private void processActionEvent(String uri)
+    {
+
     }
 }

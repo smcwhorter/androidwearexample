@@ -27,6 +27,7 @@ public class ActionPageFragment extends Fragment {
         return fragment;
     }
 
+    private String sweetyName;
     private String actionType;
     private boolean isBig = false;
     private ActionPage actionPage;
@@ -40,6 +41,10 @@ public class ActionPageFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        extractArguments();
+    }
+
+    private void extractArguments() {
         Bundle args = getArguments();
         actionType = args.getString(ACTION_TYPE_KEY, "no action");
         isBig = args.getBoolean(ACTION_SIZE_KEY, false);
