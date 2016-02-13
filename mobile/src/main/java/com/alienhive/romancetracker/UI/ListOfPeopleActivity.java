@@ -10,8 +10,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View.OnClickListener;
 
 import android.widget.ArrayAdapter;
@@ -20,6 +18,8 @@ import android.widget.EditText;
 import android.widget.ListView;
 
 import com.alienhive.romancetracker.R;
+import com.alienhive.romancetracker.domain.Sweety;
+import com.alienhive.romancetracker.domain.TrackerResults;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -49,7 +49,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     public static final String SWEETY_LIST_DATA_MAP_ITEM_KEY = "SweetyListDataMapItemKey";
 
     //Private fields
-    private ArrayList<String> sweetyList;
+    private TrackerResults trackerResults = null;
     private ArrayAdapter sweetyListAdapter;
     private GoogleApiClient apiClient;
 
@@ -84,7 +84,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     @Override
     public void onSaveInstanceState(Bundle outState) {
         Log.d(LOG_TAG, "onSaveInstanceState");
-        outState.putStringArrayList(SWEETYLIST, this.sweetyList);
+        outState.putSerializable(SWEETYLIST, this.trackerResults);
         super.onSaveInstanceState(outState);
     }
 
@@ -115,24 +115,40 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
 
     private void extractSweetyListData(Bundle savedInstanceState) {
         if(savedInstanceState != null) {
-            this.sweetyList = (ArrayList<String>) savedInstanceState.get(SWEETYLIST);
+            this.trackerResults = (TrackerResults) savedInstanceState.get(SWEETYLIST);
         }
-        if(this.sweetyList == null)
+        if(this.trackerResults == null)
         {
             loadDefaultData();
         }
     }
 
     private void loadDefaultData() {
-        String[] myResArray = getResources().getStringArray(R.array.people);
-        List<String> defaultData = Arrays.asList(myResArray);
-        this.sweetyList = new ArrayList<>(defaultData.size());
-        this.sweetyList.addAll(defaultData);
+        List<String> defaultData = loadDataFromResources();
+        loadTrackerResultsFromResources(defaultData);
     }
+
+    @NonNull
+    private List<String> loadDataFromResources() {
+        String[] myResArray = getResources().getStringArray(R.array.people);
+        return Arrays.asList(myResArray);
+    }
+
+    private void loadTrackerResultsFromResources(List<String> defaultData) {
+        int defaultListSize =  defaultData.size();
+        trackerResults = new TrackerResults();
+        //trackerResults.sweeties = new ArrayList<>(defaultListSize);
+        for(int x =0; x < defaultListSize; x++)
+        {
+            String sweetyName = defaultData.get(x).toString();
+            this.trackerResults.addSweety(sweetyName);
+        }
+    }
+
 
     private void setupListView() {
         this.listView = (ListView)findViewById(R.id.listView);
-        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
+        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, this.trackerResults.getSweetyNameList());
         listView.setAdapter(sweetyListAdapter);
     }
 
@@ -160,33 +176,11 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     }
 
     private void addPartnerName(String newName) {
-        this.sweetyList.add(newName);
+
+        this.trackerResults.addSweety(newName);
         this.sweetyListAdapter.notifyDataSetChanged();
         syncSweetyList();
     }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_list_of_people, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
 
     /* Google client API */
     @Override
@@ -226,6 +220,8 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private void syncSweetyList()
     {
         Log.d(LOG_TAG, "Sending data");
+
+        //Object used to adding new maps into the wear API
         PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(SWEETY_LIST_URI_PATH);//internally the URI looks like wear://<nodeid>/sweetyList
 
         //http://android-developers.blogspot.nl/2015/11/whats-new-in-google-play-services-83.html:
@@ -234,12 +230,13 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         // Low priority is now the default, so setUrgent() is needed to obtain the previous timing.
         putDataMapRequest.setUrgent();
 
-        DataMap dataMap = putDataMapRequest.getDataMap();//DataMap is kinda like a Bundle (key/value pairs)
-        ArrayList<String> dataList = new ArrayList<String>(this.sweetyList.size());
-        dataList.addAll(this.sweetyList);
+        //DataMap is kinda like a Bundle (key/value pairs)
+        DataMap dataMap = putDataMapRequest.getDataMap();
+
+        ArrayList<String> dataList = new ArrayList<String>(this.trackerResults.getSweetyNameList().size());
+        dataList.addAll(this.trackerResults.getSweetyNameList());
         dataMap.putStringArrayList(SWEETY_LIST_DATA_MAP_ITEM_KEY, dataList);
         //dataMap.putLong("TimeStamp", System.currentTimeMillis());
-
 
         Wearable.DataApi.putDataItem(this.apiClient, putDataMapRequest.asPutDataRequest()).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
             @Override
@@ -251,6 +248,20 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
 
     private void processActionEvent(String uri)
     {
+        String[] uriParts = uri.split("/");
+        if(uriParts.length == 4) {
+            String action = uriParts[0];
+            if(action.equals("action")) {
+                recordActionOnSweety(uriParts);
+            }
+        }
+    }
 
+    private void recordActionOnSweety(String[] uriParts) {
+        String sweetyName = uriParts[1];
+        String actionType = uriParts[2];
+        String actionValue = uriParts[3];
+
+        this.trackerResults.recordAction(sweetyName, actionType, actionValue);
     }
 }

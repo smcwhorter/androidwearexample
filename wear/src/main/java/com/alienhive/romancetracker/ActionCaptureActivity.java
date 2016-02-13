@@ -109,7 +109,7 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
         {
             size = "big";
         }
-        return "/sweeties" + "/" + this.selectedSweety + "/" + actionType + "/" + size;
+        return "/action" + "/" + this.selectedSweety + "/" + actionType + "/" + size;
     }
 
     @Override
