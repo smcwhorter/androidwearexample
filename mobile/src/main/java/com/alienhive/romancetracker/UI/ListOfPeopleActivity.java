@@ -148,7 +148,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
 
     private void setupListView() {
         this.listView = (ListView)findViewById(R.id.listView);
-        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, this.trackerResults.getSweetyNameList());
+        this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, this.trackerResults.getSweetyList());
         listView.setAdapter(sweetyListAdapter);
     }
 
@@ -233,10 +233,11 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         //DataMap is kinda like a Bundle (key/value pairs)
         DataMap dataMap = putDataMapRequest.getDataMap();
 
-        ArrayList<String> dataList = new ArrayList<String>(this.trackerResults.getSweetyNameList().size());
-        dataList.addAll(this.trackerResults.getSweetyNameList());
+        ArrayList<String> dataList = new ArrayList<String>();
+        dataList.addAll(this.trackerResults.getSweetyListOfNames());
         dataMap.putStringArrayList(SWEETY_LIST_DATA_MAP_ITEM_KEY, dataList);
-        //dataMap.putLong("TimeStamp", System.currentTimeMillis());
+
+        //dataMap.putLong("TimeStamp", System.currentTimeMillis()); TODO: remove
 
         Wearable.DataApi.putDataItem(this.apiClient, putDataMapRequest.asPutDataRequest()).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
             @Override
@@ -249,8 +250,8 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private void processActionEvent(String uri)
     {
         String[] uriParts = uri.split("/");
-        if(uriParts.length == 4) {
-            String action = uriParts[0];
+        if(uriParts.length == 5) {
+            String action = uriParts[1];
             if(action.equals("action")) {
                 recordActionOnSweety(uriParts);
             }
@@ -258,10 +259,11 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     }
 
     private void recordActionOnSweety(String[] uriParts) {
-        String sweetyName = uriParts[1];
-        String actionType = uriParts[2];
-        String actionValue = uriParts[3];
+        String sweetyName = uriParts[2];
+        String actionType = uriParts[3];
+        String actionValue = uriParts[4];
 
         this.trackerResults.recordAction(sweetyName, actionType, actionValue);
+        this.sweetyListAdapter.notifyDataSetChanged();
     }
 }

@@ -6,21 +6,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TrackerResults implements Serializable {
+    private static final long serialVersionUID = 1L;
     private List<Sweety> sweeties;
-    private List<String> sweetyNames;
 
     public TrackerResults()
     {}
 
-    public List<String> getSweetyNameList()
+    public List<Sweety> getSweetyList()
     {
-        return sweetyNames;
+        return sweeties;
     }
+
+    public List<String> getSweetyListOfNames()
+    {
+        List<String> nameList = null;
+        if(this.sweeties != null)
+        {
+            nameList = new ArrayList<>(this.sweeties.size());
+            for(int x =0; x < this.sweeties.size(); x++)
+            {
+                String name = this.sweeties.get(x).sweetyName;
+                nameList.add(name);
+            }
+        }
+        return nameList;
+    }
+
 
     public void addSweety(String name)
     {
         addToObjectList(name);
-        addToNameList(name);
     }
 
     private void addToObjectList(String name) {
@@ -34,13 +49,6 @@ public class TrackerResults implements Serializable {
         sweeties.add(sweety);
     }
 
-    private void addToNameList(String name) {
-        if(this.sweetyNames == null)
-        {
-            this.sweetyNames = new ArrayList<>(sweeties.size());
-        }
-        this.sweetyNames.add(name);
-    }
 
     public void recordAction(String name, String actionType, String actionValue)
     {
@@ -54,33 +62,34 @@ public class TrackerResults implements Serializable {
     }
 
     private Sweety findSweetyInList(String name) {
-        Sweety sweety = null;
+        Sweety sweetyFound = null;
 
-        for (int x = 0; x < sweeties.size(); x++) {
-            sweety = this.sweeties.get(x);
-            if(sweety.equals(name.trim()))
+        for (Sweety sweety : this.sweeties) {
+
+            if(sweety.sweetyName.equals(name.trim()))
             {
+                sweetyFound = sweety;
                 break;
             }
         }
-        return sweety;
+        return sweetyFound;
     }
 
     private void countActionOnSweety(Sweety sweety, String actionType, String actionValue)
     {
-        if((actionType.equals("hug")) && (actionValue.equals("small")))
+        if((actionType.toLowerCase().equals("hug")) && (actionValue.toLowerCase().equals("small")))
         {
             sweety.smallHugs++;
         }
-        if((actionType.equals("hug")) && (actionValue.equals("big")))
+        if((actionType.toLowerCase().equals("hug")) && (actionValue.toLowerCase().equals("big")))
         {
             sweety.bigHugs++;
         }
-        if((actionType.equals("kiss")) && (actionValue.equals("small")))
+        if((actionType.toLowerCase().equals("kiss")) && (actionValue.toLowerCase().equals("small")))
         {
             sweety.smallKisses++;
         }
-        if((actionType.equals("kiss")) && (actionValue.equals("big")))
+        if((actionType.toLowerCase().equals("kiss")) && (actionValue.toLowerCase().equals("big")))
         {
             sweety.bigKisses++;
         }
