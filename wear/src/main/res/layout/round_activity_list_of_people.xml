@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@color/colorAccent"
     android:orientation="vertical"
-    tools:context="com.alienhive.romancetracker.ListOfPeopleActivity"
+    tools:context="com.alienhive.romancetracker.UI.ListOfPeopleActivity"
     tools:deviceIds="wear_square">
 
     <ListView

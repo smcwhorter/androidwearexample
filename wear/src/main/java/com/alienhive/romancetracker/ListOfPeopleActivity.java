@@ -196,7 +196,7 @@ public class ListOfPeopleActivity extends Activity implements
 
     private void askForSweetyList()
     {
-        if(this.nodeList != null || this.nodeList.size() != 0)
+        if(this.nodeList != null && this.nodeList.size() != 0)
         {
             Wearable.MessageApi.sendMessage(this.apiClient, this.nodeList.get(0), "/getSweetyList", null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
                 @Override

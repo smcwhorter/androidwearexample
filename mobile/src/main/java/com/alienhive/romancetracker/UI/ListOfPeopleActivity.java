@@ -1,4 +1,4 @@
-package com.alienhive.romancetracker;
+package com.alienhive.romancetracker.UI;
 
 import android.app.AlertDialog;
 
@@ -19,6 +19,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import com.alienhive.romancetracker.R;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -34,8 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import butterknife.Bind;
-import butterknife.ButterKnife;
 
 public class ListOfPeopleActivity extends AppCompatActivity implements
         GoogleApiClient.ConnectionCallbacks,
@@ -54,8 +53,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private ArrayAdapter sweetyListAdapter;
     private GoogleApiClient apiClient;
 
-    @Bind(R.id.listView)
-    ListView listView;
+    private ListView listView;
     private AlertDialog appPartnerDialog;
 
     @Override
@@ -64,7 +62,6 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_list_of_people);
         setupToolbar();
         setupFAB();
-        ButterKnife.bind(this);
         extractSweetyListData(savedInstanceState);
         setupListView();
     }
@@ -134,6 +131,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     }
 
     private void setupListView() {
+        this.listView = (ListView)findViewById(R.id.listView);
         this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, sweetyList);
         listView.setAdapter(sweetyListAdapter);
     }

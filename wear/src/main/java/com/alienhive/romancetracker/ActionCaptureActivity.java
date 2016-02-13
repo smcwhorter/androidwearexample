@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.wearable.view.GridViewPager;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
@@ -33,6 +34,8 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
 
     //Private fields
     private String selectedSweety;
+    private String actionType;
+    private boolean isBig = false;
     private GridViewPager gridViewPager;
     private GoogleApiClient apiClient;
 
@@ -67,11 +70,11 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
         gridViewPager.setAdapter(adapter);
     }
 
-    //***************Action Listener******************//
+    //***************ActionPageFragment Listener Callback******************//
     @Override
-    public void actionButtonClicked() {
+    public void actionButtonClicked(String actionType, boolean isBig) {
         Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
-
+        this.actionType = actionType;
         apiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(this)
@@ -89,7 +92,7 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
     }
 
     private void sendActionMessage() {
-        String uri = "/action" + "/" + this.selectedSweety;
+        String uri = createMessageURI();
         Wearable.MessageApi.sendMessage(this.apiClient, ListOfPeopleActivity.nodeList.get(0), uri, null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
             //Note: The a success message does not mean the client app received the message
             @Override
@@ -97,6 +100,16 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
                 Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
             }
         });
+    }
+
+    @NonNull
+    private String createMessageURI() {
+        String size = "small";
+        if(this.isBig)
+        {
+            size = "big";
+        }
+        return "/sweeties" + "/" + this.selectedSweety + "/" + actionType + "/" + size;
     }
 
     @Override
