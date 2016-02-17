@@ -27,7 +27,7 @@ public class Sweety implements Serializable {
 
     private String getCounts()
     {
-        return "    " + "Hugs: " + String.valueOf(getHugs()) + " | Kisses: " + String.valueOf(getKisses());
+        return " - " + "Hugs: " + String.valueOf(getHugs()) + " | Kisses: " + String.valueOf(getKisses());
     }
 
     private int getHugs()

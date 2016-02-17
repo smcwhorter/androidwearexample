@@ -66,14 +66,14 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
     }
 
     private void setupGridViewPager() {
-        ActionPickerGridPagerAdapter adapter = new ActionPickerGridPagerAdapter(this, getFragmentManager());
+        ActionPickerGridPagerAdapter adapter = new ActionPickerGridPagerAdapter(this.selectedSweety, this, getFragmentManager());
         gridViewPager.setAdapter(adapter);
     }
 
     //***************ActionPageFragment Listener Callback******************//
     @Override
     public void actionButtonClicked(String actionType, boolean isBig) {
-        Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "clicked", Toast.LENGTH_SHORT).show();
         this.actionType = actionType;
         apiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
@@ -98,6 +98,10 @@ public class ActionCaptureActivity extends Activity implements ActionPageFragmen
             @Override
             public void onResult(MessageApi.SendMessageResult sendMessageResult) {
                 Log.d(LOG_TAG, "Send Message results: " + sendMessageResult.getStatus().getStatusMessage());
+                if(sendMessageResult.getStatus().getStatusMessage().equals("TARGET_NODE_NOT_CONNECTED"))
+                {
+                    Toast.makeText(getApplicationContext(), "TARGET_NODE_NOT_CONNECTED", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }

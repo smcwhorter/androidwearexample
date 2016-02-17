@@ -12,20 +12,25 @@ import com.alienhive.romancetracker.domain.RomanceAction;
 import java.util.ArrayList;
 
 public class ActionPickerGridPagerAdapter extends FragmentGridPagerAdapter {
+
+    //Private fields
+    private String sweetyName;
     private Context context;
     ArrayList<ActionPageRow> actionPageList;
 
-    public ActionPickerGridPagerAdapter(Context context, FragmentManager fm) {
+    public ActionPickerGridPagerAdapter(String sweetyName, Context context, FragmentManager fm) {
         super(fm);
+
         this.context = context;
+        this.sweetyName = sweetyName;
         createActionPages();
     }
 
     private void createActionPages() {
         actionPageList = new ArrayList<>(2);
-        ActionPageRow actionRow1 = new ActionPageRow(RomanceAction.createHugAction());
+        ActionPageRow actionRow1 = new ActionPageRow(this.sweetyName, RomanceAction.createHugAction());
 
-        ActionPageRow actionRow2 = new ActionPageRow(RomanceAction.createKissAction());
+        ActionPageRow actionRow2 = new ActionPageRow(this.sweetyName, RomanceAction.createKissAction());
         actionPageList.add(actionRow1);
         actionPageList.add(actionRow2);
     }

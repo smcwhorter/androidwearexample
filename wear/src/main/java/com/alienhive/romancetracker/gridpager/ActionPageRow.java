@@ -10,16 +10,17 @@ import java.util.ArrayList;
 public class ActionPageRow {
 
     //Private fields
+    private String sweetyName;
     private RomanceAction action;
     private Fragment actionTypeFragment;
     private ArrayList<ActionColumn> actionColumnList;
 
     /**
      * Constructor
-    */
-    public ActionPageRow(RomanceAction action)
-    {
+     */
+    public ActionPageRow(String sweetyName, RomanceAction action) {
         this.action = action;
+        this.sweetyName = sweetyName;
         setupActionTypeColumn(action);
         setupActionColumns();
     }
@@ -27,12 +28,9 @@ public class ActionPageRow {
     public Fragment getFragment(int col) {
         if (col == 0) {
             return actionTypeFragment;
-        }
-        else if (col >= 1) {
+        } else if (col >= 1) {
             return actionColumnList.get(col - 1).getFragment();
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
@@ -42,7 +40,8 @@ public class ActionPageRow {
     }
 
     private void setupActionTypeColumn(RomanceAction action) {
-        actionTypeFragment = ActionTypeCardFragment.newInstance(action.title, action.description);
+        String title = action.title + " for " + this.sweetyName;
+        actionTypeFragment = ActionTypeCardFragment.newInstance(title, action.description);
     }
 
     private void setupActionColumns() {

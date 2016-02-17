@@ -2,10 +2,16 @@ package com.alienhive.romancetracker.UI;
 
 import android.app.AlertDialog;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -18,7 +24,6 @@ import android.widget.EditText;
 import android.widget.ListView;
 
 import com.alienhive.romancetracker.R;
-import com.alienhive.romancetracker.domain.Sweety;
 import com.alienhive.romancetracker.domain.TrackerResults;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -30,6 +35,7 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.Wearable;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,6 +62,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     private ListView listView;
     private AlertDialog appPartnerDialog;
 
+    //*********************Life cycle methods*********************
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,7 +72,6 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         extractSweetyListData(savedInstanceState);
         setupListView();
     }
-
 
     @Override
     protected void onResume() {
@@ -79,6 +85,10 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
                     .build();
             apiClient.connect();
         }
+        readLocalDataCacheFromSharedPreferences();
+
+        IntentFilter intentFilter = new IntentFilter("UPDATE-VIEW");
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver, intentFilter);
     }
 
     @Override
@@ -96,8 +106,12 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
             apiClient.disconnect();
             apiClient = null;
         }
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+        saveTrackerData();
     }
 
+    //*********************private methods*********************
     private void setupToolbar() {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -114,12 +128,14 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     }
 
     private void extractSweetyListData(Bundle savedInstanceState) {
-        if(savedInstanceState != null) {
+        if (savedInstanceState != null) {
             this.trackerResults = (TrackerResults) savedInstanceState.get(SWEETYLIST);
         }
-        if(this.trackerResults == null)
-        {
-            loadDefaultData();
+        if (this.trackerResults == null) {
+            loadSavedTrackerData();
+            if (this.trackerResults == null) {
+                loadDefaultData();
+            }
         }
     }
 
@@ -135,19 +151,16 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
     }
 
     private void loadTrackerResultsFromResources(List<String> defaultData) {
-        int defaultListSize =  defaultData.size();
+        int defaultListSize = defaultData.size();
         trackerResults = new TrackerResults();
-        //trackerResults.sweeties = new ArrayList<>(defaultListSize);
-        for(int x =0; x < defaultListSize; x++)
-        {
+        for (int x = 0; x < defaultListSize; x++) {
             String sweetyName = defaultData.get(x).toString();
             this.trackerResults.addSweety(sweetyName);
         }
     }
 
-
     private void setupListView() {
-        this.listView = (ListView)findViewById(R.id.listView);
+        this.listView = (ListView) findViewById(R.id.listView);
         this.sweetyListAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, this.trackerResults.getSweetyList());
         listView.setAdapter(sweetyListAdapter);
     }
@@ -182,7 +195,7 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         syncSweetyList();
     }
 
-    /* Google client API */
+    //*****************Google client API*********************
     @Override
     public void onConnected(Bundle bundle) {
         Snackbar.make(listView, "Google API Client - Connected", Snackbar.LENGTH_SHORT).setAction("Action", null).show();
@@ -203,22 +216,17 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         Snackbar.make(listView, "Google API Client - Connection failed with status: " + connectionResult.getErrorMessage(), Snackbar.LENGTH_SHORT).show();
     }
 
-    /* Message API - in this case the activity must be running to receive messages*/
+    //********************** WEAR Message API - in this case the activity must be running to receive messages*/
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
+
         Log.d(LOG_TAG, "onMessageReceived: " + messageEvent.getPath());
-        if(messageEvent.getPath().equals("/getSweetyList"))
-        {
+        if (messageEvent.getPath().equals("/getSweetyList")) {
             syncSweetyList();
-        }
-        else if(messageEvent.getPath().contains("/action"))
-        {
-            processActionEvent(messageEvent.getPath());
         }
     }
 
-    private void syncSweetyList()
-    {
+    private void syncSweetyList() {
         Log.d(LOG_TAG, "Sending data");
 
         //Object used to adding new maps into the wear API
@@ -247,23 +255,55 @@ public class ListOfPeopleActivity extends AppCompatActivity implements
         });
     }
 
-    private void processActionEvent(String uri)
-    {
-        String[] uriParts = uri.split("/");
-        if(uriParts.length == 5) {
-            String action = uriParts[1];
-            if(action.equals("action")) {
-                recordActionOnSweety(uriParts);
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(LOG_TAG, "BroadcastReceiver - onReceive()");
+            readLocalDataCacheFromSharedPreferences();
+        }
+
+    };
+
+    private void readLocalDataCacheFromSharedPreferences() {
+        SharedPreferences sharedPreferences = getSharedPreferences("pendingactions-pref", Context.MODE_PRIVATE);
+        String pendingData = sharedPreferences.getString("pendingactions", "");
+        if (pendingData != null) {
+            String[] pendingDataBySweety = pendingData.split("\\#");
+            for (int x = 0; x < pendingDataBySweety.length; x++) {
+                String[] actions = pendingDataBySweety[x].split("/");
+                if (actions.length == 3) {
+                    recordActionOnSweety(actions);
+                }
             }
+
+            clearCacheDataFromSharedPreferences(sharedPreferences);
         }
     }
 
-    private void recordActionOnSweety(String[] uriParts) {
-        String sweetyName = uriParts[2];
-        String actionType = uriParts[3];
-        String actionValue = uriParts[4];
-
-        this.trackerResults.recordAction(sweetyName, actionType, actionValue);
+    private void recordActionOnSweety(String[] actionParts) {
+        this.trackerResults.recordAction(actionParts[0], actionParts[1], actionParts[2]);
         this.sweetyListAdapter.notifyDataSetChanged();
+    }
+
+    private void clearCacheDataFromSharedPreferences(SharedPreferences sharedPreferences) {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.commit();
+    }
+
+    private void saveTrackerData() {
+        Gson gson = new Gson();
+        String dataAsString = gson.toJson(this.trackerResults);
+        SharedPreferences preferences = getSharedPreferences("trackerdata-pref", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("trackerdata", dataAsString);
+        editor.commit();
+    }
+
+    private void loadSavedTrackerData() {
+        SharedPreferences preferences = getSharedPreferences("trackerdata-pref", Context.MODE_PRIVATE);
+        String data = preferences.getString("trackerdata", "");
+        Gson gson = new Gson();
+        this.trackerResults = gson.fromJson(data, TrackerResults.class);
     }
 }
